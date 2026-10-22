@@ -131,7 +131,8 @@ async function measure(model) {
 
   // Wh per 1M generated tokens.
   const wattHoursPerMillion = avgWatts && tokPerSec ? (avgWatts / tokPerSec) * (1e6 / 3600) : null;
-  const electricityPerMillion = wattHoursPerMillion !== null ? wattHoursPerMillion * ELECTRICITY_USD_KWH : null;
+  // Wh to kWh before multiplying by a per-kWh rate.
+  const electricityPerMillion = wattHoursPerMillion !== null ? (wattHoursPerMillion / 1000) * ELECTRICITY_USD_KWH : null;
 
   // Amortized hardware: purchase price spread over the useful life and the hours
   // it is actually used.

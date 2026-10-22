@@ -77,13 +77,13 @@ Cost inputs, all passed in and recorded in `bench/cost.json`: electricity $0.15/
 
 | Model | tok/s | Watts | VRAM | Wh / 1M tok | $ / 1M tok (power) | $ / 1M tok (amortized) |
 |---|---:|---:|---:|---:|---:|---:|
-| Qwen3 4B (Q4_K_M) | 146.0 | 253.4 | 6.8 GB | 482 | $72.32 | **$0.19** |
-| DeepSeek R1 Distill 7B (Q4_K_M) | 104.6 | 291.3 | 11.3 GB | 774 | $116.08 | **$0.27** |
-| Qwen3.8 9B (Q6_K) | 67.9 | 299.7 | 13.7 GB | 1,226 | $183.86 | **$0.41** |
+| Qwen3 4B (Q4_K_M) | 144.8 | 252.4 | 6.4 GB | 484 | $0.073 | **$0.19** |
+| DeepSeek R1 Distill 7B (Q4_K_M) | 105.2 | 289.3 | 8.2 GB | 764 | $0.115 | **$0.26** |
+| Qwen3.8 9B (Q6_K) | 68.5 | 299.1 | 10.6 GB | 1,214 | $0.182 | **$0.41** |
 
-Two cost bases, because they answer different questions. The power figure is the marginal cost of a token and matters when the card is already running. The amortized figure is what a token actually costs on hardware you own: $0.10 per hour of card time, spread over the tokens it produces. A request that lands on the 4B costs a third of what the same request costs on the 9B.
+Two cost bases, because they answer different questions. The power figure is the marginal cost of a token and matters when the card is already running. The amortized figure is what a token actually costs on hardware you own: $0.10 per hour of card time, spread over the tokens it produces. A request that lands on the 4B costs about half what the same request costs on the 9B.
 
-The model is the cheaper one and the router is the reason: a request for `quality` that fits in $0.30 per million tokens lands on the 7B, and one that does not gets refused rather than silently run on the 9B at $0.41.
+The router is the reason the cheaper model gets used: a request for `quality` that fits in $0.30 per million tokens lands on the 7B, and one that does not gets refused rather than silently run on the 9B at $0.41.
 
 ## Cost-aware routing
 
@@ -94,7 +94,7 @@ curl -s http://localhost:3000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{"model":"auto","messages":[{"role":"user","content":"hi"}],"max_tokens":8}' \
   | jq '.x_local'
-# { "tier": "fast", "usd_per_1m_tokens": 0.19, "estimated_cost_usd": 0.00072 }
+# { "tier": "fast", "usd_per_1m_tokens": 0.192, "estimated_cost_usd": 0.00073 }
 ```
 
 | Request | Routes to |
