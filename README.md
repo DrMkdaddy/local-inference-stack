@@ -1,60 +1,37 @@
 # Local Inference Stack
 
-**Self-hosted LLM inference on bare metal.** OpenAI-compatible API, MCP server for agents, Prometheus metrics, Nix-declarative deployment. Benchmarked on an AMD RX 9070 XT.
+Self-hosted LLM inference on bare metal. OpenAI-compatible API, MCP server for agents, Prometheus metrics, Nix-declarative deploy. Runs on an AMD RX 9070 XT.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+## Numbers
 
-## What a hiring manager scans for
+RX 9070 XT, 16 GB VRAM, Vulkan. 4096 context, Q8_0 KV cache, all layers offloaded to device. Three runs, no warm-up, same prompt each time.
 
-| Question | Evidence |
-|---|---|
-| Can you serve a model? | Two models benchmarked on real hardware: 60 tok/s (Qwen3.8 9B) and 97 tok/s (DeepSeek R1 Distill 7B) |
-| Can you build the platform around it? | OpenAI-compatible API gateway with health checks, metrics, streaming (SSE), and an MCP server for agent tooling |
-| Do you understand the hardware? | VRAM budget table, KV cache quantization, context window tradeoffs, Vulkan offload |
-| Can you measure and optimize? | Benchmark harness with throughput, latency, and VRAM per model. Reproducible with `npm run bench` |
-| Can you operate it? | Health checks with model readiness gates, Prometheus metrics, Nix flake, runbook |
-| Do you have API experience? | 12 production APIs on Cloudflare Workers, edge routing, fail-closed auth, multi-language SDKs |
-
-## Benchmarks
-
-Measured on AMD RX 9070 XT (16GB VRAM, Vulkan), 4096 context, Q8_0 KV cache, Node 26. Three runs each, no warm-up.
-
-| Model | Quant | Prompt tok/s | Gen tok/s | Avg latency | VRAM |
+| Model | Quant | Gen tok/s | Prompt tok/s | Latency | VRAM |
 |---|---|---:|---:|---:|---:|
-| Qwen3.8 9B | Q6_K | 23 | **60.1** | 1,065 ms | 12.1 / 16 GB |
-| DeepSeek R1 Distill 7B | Q4_K_M | 14 | **97.2** | 659 ms | 10.0 / 16 GB |
+| Qwen3.8 9B | Q6_K | **60.1** | 23 | 1,065 ms | 12.1 GB |
+| DeepSeek R1 Distill 7B | Q4_K_M | **97.2** | 14 | 659 ms | 10.0 GB |
 
-Generation throughput is the number that matters for serving. Both models leave headroom for larger context windows or a second model on the same card.
+7B hits nearly 100 tok/s because Q4_K_M is 4.5 GB against 16 GB of VRAM, leaving the KV cache room to stay out of the spill path. The 9B at Q6_K is a much tighter fit at 12.1 GB, and the difference is the price of the higher precision.
 
-## Quick start
+## Running it
 
 ```bash
-# 1. Start the inference backend
 $LLAMA_SERVER -m $MODEL_DIR/Qwen3.8-9B-heretic-uncensored.i1-Q6_K.gguf \
-  --alias qwen3.8-9b --host 127.0.0.1 --port 8081 \
+  --alias qwen3.8-9b --host 127.0.1 --port 8081 \
   --ctx-size 4096 --n-gpu-layers 99 -ctk q8_0 -ctv q8_0 --reasoning off
 
-# 2. Start the API gateway
 npm run gateway
-
-# 3. Run the benchmark
-npm run bench
 ```
 
-## API
-
-The gateway is OpenAI-compatible. Point any OpenAI client at `http://localhost:3000`.
+The gateway is OpenAI-compatible. Any client that speaks `/v1` works against it.
 
 ```bash
-# Health check
 curl -s http://localhost:3000/health | jq
 # {"status":"ok","upstream":"reachable","uptime_s":42}
 
-# List models
 curl -s http://localhost:3000/v1/models | jq '.data[].id'
 # "qwen3.8-9b"
 
-# Chat completion
 curl -s http://localhost:3000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
@@ -64,7 +41,6 @@ curl -s http://localhost:3000/v1/chat/completions \
     "temperature": 0.7
   }' | jq '.choices[0].message.content'
 
-# Prometheus metrics
 curl -s http://localhost:3000/metrics
 # inference_requests_total 12
 # inference_tokens_generated_total 768
@@ -73,26 +49,24 @@ curl -s http://localhost:3000/metrics
 # process_uptime_seconds 120.0
 ```
 
-Streaming is supported via `stream: true` in the request body (SSE).
+`stream: true` in the request body gets you SSE.
 
-## MCP server
+## MCP
 
-Exposes the local model as a tool to LLM agents. Same transport pattern as [`@stanzaapi/mcp`](https://github.com/StanzaAPI): stdio and HTTP/SSE.
+The local model, exposed to agents as a tool. Same transport as [`@stanzaapi/mcp`](https://github.com/StanzaAPI): stdio and HTTP/SSE.
 
 ```bash
 npm run mcp
 ```
 
-Tools exposed:
-
-| Tool | Description |
+| Tool | Args |
 |---|---|
-| `complete` | Run a completion against the local model. Args: `prompt`, `max_tokens`, `temperature` |
-| `health` | Check whether the inference backend is reachable |
+| `complete` | `prompt`, `max_tokens`, `temperature` |
+| `health` | — |
 
-Drop it into any MCP client (Claude Desktop, Cursor, or a custom agent) and the local model becomes a callable tool.
+Point Claude Desktop, Cursor, or your own agent at it and the local model is callable.
 
-## Architecture
+## Shape
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌──────────────┐
@@ -103,38 +77,33 @@ Drop it into any MCP client (Claude Desktop, Cursor, or a custom agent) and the 
                           ▼
                     ┌──────────────┐
                     │  Prometheus  │
-                    │  /metrics    │
                     └──────────────┘
 ```
 
-The gateway handles health checks, metrics, and request routing. The inference backend is llama.cpp compiled with Vulkan support for the RX 9070 XT. No cloud dependency at any layer.
+Gateway owns health, metrics, routing. Backend is llama.cpp with Vulkan. Nothing leaves the box.
 
-## Optimization notes
+## Tuning
 
-What moves the numbers:
+**Offload everything.** `--n-gpu-layers 99` puts every layer on the device. CPU fallback is roughly 3x slower and drops throughput into the single digits.
 
-- **Vulkan offload** (`--n-gpu-layers 99`): all layers on GPU. CPU fallback is ~3x slower.
-- **KV cache quantization** (`-ctk q8_0 -ctv q8_0`): halves KV cache memory with negligible quality loss, freeing VRAM for larger context.
-- **Context window** (4096 default): larger contexts reduce throughput. 4096 is the sweet spot for single-user serving.
-- **Batch-invariant inference** is off by default (NVIDIA-only). On AMD, results may vary slightly across batch sizes.
-- **Reasoning mode** is disabled (`--reasoning off`) for the Qwen model. Enabling it burns tokens on chain-of-thought before producing content.
+**Quantize the KV cache.** `-ctk q8_0 -ctv q8_0` halves KV memory for a quality cost that is not visible in practice. Without it the 9B does not fit at 4096 context.
 
-### VRAM budget
+**Context is the throughput knob.** 4096 is the sweet spot for single-user serving. Every doubling costs both tokens/sec and headroom for a second resident model.
 
-| Model | Quant | VRAM (model + KV) | Headroom |
-|---|---|---:|---:|
-| Qwen3.8 9B | Q6_K | 12.1 GB | 3.9 GB |
-| DeepSeek R1 Distill 7B | Q4_K_M | 10.0 GB | 6.0 GB |
+**Quantization buys resident models.** Qwen3.8 9B at Q4_K_M lands near 6 GB, which leaves room to keep a second model on the same card and route between them.
 
-Both leave room for a larger context window or a second model on the same card. Qwen3.8 at Q4_K_M would drop to ~6GB, leaving room for a second model.
+**Reasoning mode is a budget decision.** The Qwen model is a thinking model. `--reasoning off` stops it burning tokens on chain-of-thought before producing content. On, it roughly triples the token cost of a short answer.
 
-## Deployment
+**Batch-invariant inference is NVIDIA-only.** On AMD, output can shift slightly across batch compositions. Noted in the code rather than papered over.
+
+## Operations
+
+- `/health` gates on the backend actually answering, not just the process being up
+- `/metrics` is Prometheus-format and counts tokens in both directions, not just requests
+- No systemd units. Each model is a command you run when you want it, and Nix owns the wrapper scripts
+- Weights and the llama.cpp build stay where they are; the flake only describes how to launch them
 
 ```bash
-# Nix flake (reproducible)
-nix run .#default
-
-# Or with env overrides
 LLAMA_SERVER=~/llama.cpp/llama-b11050/llama-server \
 MODEL_DIR=~/models \
 MODEL=DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf \
@@ -143,23 +112,18 @@ CTX=4096 \
 nix run .#default
 ```
 
-No systemd units. Each model is a command you run when you want it. Nix owns the wrapper scripts; weights and the llama.cpp build stay where they are.
-
 ## Stack
 
-| Component | Technology |
+| | |
 |---|---|
-| Inference engine | llama.cpp (Vulkan build, b11050) |
-| Models | Qwen3.8 9B (Q6_K), Qwen 3 4B (Q4_K_M), DeepSeek R1 Distill 7B (Q4_K_M) |
-| GPU | AMD RX 9070 XT, 16GB VRAM, Vulkan |
+| Inference | llama.cpp, Vulkan build b11050 |
+| GPU | AMD RX 9070 XT, 16 GB, Vulkan |
 | API gateway | Node.js, OpenAI-compatible, zero dependencies |
-| Agent protocol | Model Context Protocol (MCP) |
+| Agent protocol | Model Context Protocol, stdio + HTTP/SSE |
 | Monitoring | Prometheus metrics, health checks |
-| Deployment | Nix flake, declarative |
-| OS | NixOS (flakes, declarative hosts) |
+| Deployment | Nix flake |
+| Host OS | NixOS, declarative hosts and firewall |
 
 ## License
 
 MIT
-EOF
-echo "rewritten"
