@@ -95,8 +95,8 @@
             lib.mapAttrsToList (
               name: drv:
               "      ${name}) RUNNER=${drv}/bin/run-${name}; PORT=${toString models.${name}.port}; ALIAS=${
-                lib.escapeShellArg models.${name}.alias
-              } ;;"
+                      lib.escapeShellArg models.${name}.alias
+                    } ;;"
             ) runners
           );
 
@@ -246,19 +246,10 @@
         pkgs:
         let
           t = tools pkgs;
-        in
-        t.runners // { default = t.listApp; }
-      );
 
-      apps = forAllSystems (
-        pkgs:
-        let
-          t = tools pkgs;
-
-          # One app per Node entry point. node_modules has to exist first:
-          # `npm install` in the repo root.
+          # Same helper as the apps, so `nix build .#gateway` works.
           mkNodeApp =
-            name: script: extraEnv:
+            name: script:
             pkgs.writeShellApplication {
               name = name;
               runtimeInputs = with pkgs; [ nodejs_22 ];
@@ -269,7 +260,39 @@
                   exit 1
                 fi
                 export LLAMA_URL="''${LLAMA_URL:-http://127.0.0.1:8081}"
-                ${extraEnv}
+                exec node ${script} "$@"
+              '';
+            };
+        in
+        t.runners
+        // {
+          default = t.listApp;
+          gateway = mkNodeApp "inference-gateway" "src/gateway.mjs";
+          mcp = mkNodeApp "inference-mcp" "src/mcp-server.mjs";
+          bench = mkNodeApp "inference-bench" "bench/bench.mjs";
+        }
+      );
+
+      apps = forAllSystems (
+        pkgs:
+        let
+          t = tools pkgs;
+
+          # One app per Node entry point. node_modules has to exist first:
+          # `npm install` in the repo root. Env vars pass through to the Node
+          # process, which is where the defaults live.
+          mkNodeApp =
+            name: script:
+            pkgs.writeShellApplication {
+              name = name;
+              runtimeInputs = with pkgs; [ nodejs_22 ];
+              text = ''
+                cd ${self}
+                if [ ! -d node_modules ]; then
+                  echo "node_modules missing: run 'npm install' in the repo root first" >&2
+                  exit 1
+                fi
+                export LLAMA_URL="''${LLAMA_URL:-http://127.0.0.1:8081}"
                 exec node ${script} "$@"
               '';
             };
@@ -297,15 +320,15 @@
           };
           gateway = {
             type = "app";
-            program = "${mkNodeApp "inference-gateway" "src/gateway.mjs" "export PORT=\"''${PORT:-3000}\""}/bin/inference-gateway";
+            program = "${mkNodeApp "inference-gateway" "src/gateway.mjs"}/bin/inference-gateway";
           };
           mcp = {
             type = "app";
-            program = "${mkNodeApp "inference-mcp" "src/mcp-server.mjs" ""}/bin/inference-mcp";
+            program = "${mkNodeApp "inference-mcp" "src/mcp-server.mjs"}/bin/inference-mcp";
           };
           bench = {
             type = "app";
-            program = "${mkNodeApp "inference-bench" "bench/bench.mjs" ""}/bin/inference-bench";
+            program = "${mkNodeApp "inference-bench" "bench/bench.mjs"}/bin/inference-bench";
           };
           default = {
             type = "app";
