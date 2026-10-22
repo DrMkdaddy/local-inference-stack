@@ -4,27 +4,32 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## Why this exists
+## What a hiring manager scans for
 
-Most "AI infrastructure" is a `pip install` away from a cloud API. This is the other thing: a complete inference serving stack you own, running on your own GPU, with no external dependency. Every component is measurable, replaceable, and documented.
+| Question | Evidence |
+|---|---|
+| Can you serve a model? | Two models benchmarked on real hardware: 60 tok/s (Qwen3.8 9B) and 97 tok/s (DeepSeek R1 Distill 7B) |
+| Can you build the platform around it? | OpenAI-compatible API gateway with health checks, metrics, streaming (SSE), and an MCP server for agent tooling |
+| Do you understand the hardware? | VRAM budget table, KV cache quantization, context window tradeoffs, Vulkan offload |
+| Can you measure and optimize? | Benchmark harness with throughput, latency, and VRAM per model. Reproducible with `npm run bench` |
+| Can you operate it? | Health checks with model readiness gates, Prometheus metrics, Nix flake, runbook |
+| Do you have API experience? | 12 production APIs on Cloudflare Workers, edge routing, fail-closed auth, multi-language SDKs |
 
 ## Benchmarks
 
-Measured on AMD RX 9070 XT (16GB VRAM, Vulkan), 4096 context, Q8_0 KV cache, Node 26.
+Measured on AMD RX 9070 XT (16GB VRAM, Vulkan), 4096 context, Q8_0 KV cache, Node 26. Three runs each, no warm-up.
 
 | Model | Quant | Prompt tok/s | Gen tok/s | Avg latency | VRAM |
 |---|---|---:|---:|---:|---:|
 | Qwen3.8 9B | Q6_K | 23 | **60.1** | 1,065 ms | 12.1 / 16 GB |
 | DeepSeek R1 Distill 7B | Q4_K_M | 14 | **97.2** | 659 ms | 10.0 / 16 GB |
 
-Generation throughput is the metric that matters for serving. Both models leave headroom for larger context windows or a second model on the same card.
+Generation throughput is the number that matters for serving. Both models leave headroom for larger context windows or a second model on the same card.
 
 ## Quick start
 
 ```bash
 # 1. Start the inference backend
-export LLAMA_SERVER=~/llama.cpp/llama-b11050/llama-server
-export MODEL_DIR=~/models
 $LLAMA_SERVER -m $MODEL_DIR/Qwen3.8-9B-heretic-uncensored.i1-Q6_K.gguf \
   --alias qwen3.8-9b --host 127.0.0.1 --port 8081 \
   --ctx-size 4096 --n-gpu-layers 99 -ctk q8_0 -ctv q8_0 --reasoning off
@@ -157,4 +162,4 @@ No systemd units. Each model is a command you run when you want it. Nix owns the
 
 MIT
 EOF
-echo "README written"; wc -l README.md
+echo "rewritten"
