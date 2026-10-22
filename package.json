@@ -6,7 +6,11 @@
   "scripts": {
     "gateway": "node src/gateway.mjs",
     "mcp": "node src/mcp-server.mjs",
-    "bench": "node bench/bench.mjs"
+    "bench": "node bench/bench.mjs",
+    "sweep": "node bench/sweep.mjs",
+    "cost": "node bench/cost.mjs",
+    "registry": "node bench/make-registry.mjs",
+    "route": "node bench/route-demo.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

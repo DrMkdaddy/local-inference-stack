@@ -1,0 +1,56 @@
+{
+  "inputs": {
+    "electricity_usd_per_kwh": 0.15,
+    "gpu_cost_usd": 600,
+    "amortize_years": 3,
+    "hours_per_year": 2000,
+    "measured_at": "2026-10-22T03:29:43.864Z"
+  },
+  "results": [
+    {
+      "model": "qwen3-4b",
+      "file": "Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+      "ctx": 4096,
+      "elapsed_s": 7.01,
+      "prompt_tokens": 59,
+      "gen_tokens": 1024,
+      "tok_per_sec": 146,
+      "vram_bytes": 6814912512,
+      "power_samples": 17,
+      "loaded_watts": 253.4,
+      "watt_hours_per_1m_tokens": 482.12,
+      "usd_electricity_per_1m_tokens": 72.318,
+      "usd_amortized_per_1m_tokens": 0.19
+    },
+    {
+      "model": "deepseek-r1-7b",
+      "file": "DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf",
+      "ctx": 4096,
+      "elapsed_s": 9.79,
+      "prompt_tokens": 54,
+      "gen_tokens": 1024,
+      "tok_per_sec": 104.6,
+      "vram_bytes": 11344343040,
+      "power_samples": 24,
+      "loaded_watts": 291.3,
+      "watt_hours_per_1m_tokens": 773.87,
+      "usd_electricity_per_1m_tokens": 116.081,
+      "usd_amortized_per_1m_tokens": 0.266
+    },
+    {
+      "model": "qwen3.8-9b",
+      "file": "Qwen3.8-9B-heretic-uncensored.i1-Q6_K.gguf",
+      "ctx": 4096,
+      "elapsed_s": 15.08,
+      "prompt_tokens": 63,
+      "gen_tokens": 1024,
+      "tok_per_sec": 67.9,
+      "vram_bytes": 13665386496,
+      "power_samples": 37,
+      "loaded_watts": 299.7,
+      "watt_hours_per_1m_tokens": 1225.7,
+      "usd_electricity_per_1m_tokens": 183.855,
+      "usd_amortized_per_1m_tokens": 0.409
+    }
+  ]
+}

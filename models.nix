@@ -44,14 +44,19 @@
     ];
   };
 
-  # A small model, for the case where two need to be resident at once.
-  # qwen4b = {
-  #   file = "Qwen3-4B-Instruct-2507-Q4_K_M.gguf";
-  #   alias = "qwen3-4b";
-  #   port = 8083;
-  #   ctx = 8192;
-  #   ngl = 99;
-  #   kv = "q8_0";
-  #   fa = "on";
-  # };
+  # A small model, for the case where two need to be resident at once, and for
+  # the cheap tier the router prefers.
+  qwen4b = {
+    file = "Qwen3-4B-Instruct-2507-Q4_K_M.gguf";
+    alias = "qwen3-4b";
+    port = 8085;
+    ctx = 4096;
+    ngl = 99;
+    kv = "q8_0";
+    fa = "on";
+    args = [
+      "--reasoning"
+      "off"
+    ];
+  };
 }

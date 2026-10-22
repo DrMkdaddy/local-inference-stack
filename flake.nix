@@ -270,6 +270,8 @@
           gateway = mkNodeApp "inference-gateway" "src/gateway.mjs";
           mcp = mkNodeApp "inference-mcp" "src/mcp-server.mjs";
           bench = mkNodeApp "inference-bench" "bench/bench.mjs";
+          cost = mkNodeApp "inference-cost" "bench/cost.mjs";
+          route = mkNodeApp "inference-route" "bench/route-demo.mjs";
         }
       );
 
@@ -329,6 +331,14 @@
           bench = {
             type = "app";
             program = "${mkNodeApp "inference-bench" "bench/bench.mjs"}/bin/inference-bench";
+          };
+          cost = {
+            type = "app";
+            program = "${mkNodeApp "inference-cost" "bench/cost.mjs"}/bin/inference-cost";
+          };
+          route = {
+            type = "app";
+            program = "${mkNodeApp "inference-route" "bench/route-demo.mjs"}/bin/inference-route";
           };
           default = {
             type = "app";

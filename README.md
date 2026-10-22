@@ -69,6 +69,51 @@ npm run mcp
 
 Point Claude Desktop, Cursor, or your own agent at it and the local model is callable.
 
+## Unit economics
+
+Three models served from one card, measured with `node bench/cost.mjs`. The workload is a long generation (1024 output tokens) so the GPU stays in a steady state; a short answer finishes before the power reading settles and the cost comes out wrong.
+
+Cost inputs, all passed in and recorded in `bench/cost.json`: electricity $0.15/kWh, GPU $600, amortized over 3 years at 2,000 h/yr.
+
+| Model | tok/s | Watts | VRAM | Wh / 1M tok | $ / 1M tok (power) | $ / 1M tok (amortized) |
+|---|---:|---:|---:|---:|---:|---:|
+| Qwen3 4B (Q4_K_M) | 146.0 | 253.4 | 6.8 GB | 482 | $72.32 | **$0.19** |
+| DeepSeek R1 Distill 7B (Q4_K_M) | 104.6 | 291.3 | 11.3 GB | 774 | $116.08 | **$0.27** |
+| Qwen3.8 9B (Q6_K) | 67.9 | 299.7 | 13.7 GB | 1,226 | $183.86 | **$0.41** |
+
+Two cost bases, because they answer different questions. The power figure is the marginal cost of a token and matters when the card is already running. The amortized figure is what a token actually costs on hardware you own: $0.10 per hour of card time, spread over the tokens it produces. A request that lands on the 4B costs a third of what the same request costs on the 9B.
+
+The model is the cheaper one and the router is the reason: a request for `quality` that fits in $0.30 per million tokens lands on the 7B, and one that does not gets refused rather than silently run on the 9B at $0.41.
+
+## Cost-aware routing
+
+The gateway prices every model from `models.json`, which is generated from `bench/cost.json` by `node bench/make-registry.mjs`. Prices are measurements, not a hand-typed table.
+
+```bash
+curl -s http://localhost:3000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"auto","messages":[{"role":"user","content":"hi"}],"max_tokens":8}' \
+  | jq '.x_local'
+# { "tier": "fast", "usd_per_1m_tokens": 0.19, "estimated_cost_usd": 0.00072 }
+```
+
+| Request | Routes to |
+|---|---|
+| `"model": "qwen3-4b"` | that model, or a refusal if it is down |
+| `"model": "auto"` | cheapest model that is healthy right now |
+| `"model": "quality"` | cheapest model at or above that tier |
+| `"max_cost_per_1m": 0.30` | ceiling; a model that cannot meet it is not used |
+
+Spend accounting, per model:
+
+```bash
+curl -s http://localhost:3000/cost | jq
+# total_cost_usd, usd_per_1k_tokens_all, by_model[]
+#   model, requests, tokens_prompt, tokens_generated, cost_usd, usd_per_1k_tokens, avg_latency_ms
+```
+
+Prometheus picks it up too: `inference_cost_usd_total`, `inference_model_cost_usd_total{model="..."}`, `inference_model_tokens_generated_total{model="..."}`.
+
 ## Shape
 
 ```
@@ -77,13 +122,15 @@ Point Claude Desktop, Cursor, or your own agent at it and the local model is cal
 │ (curl/MCP)  │     │  (Node.js)   │     │  (Vulkan)    │
 └─────────────┘     └──────────────┘     └──────────────┘
                           │
-                          ▼
-                    ┌──────────────┐
-                    │  Prometheus  │
-                    └──────────────┘
+                    ┌─────┴──────┐
+                    ▼            ▼
+             ┌────────────┐  ┌────────────┐
+             │ Prometheus  │  │  /cost     │
+             │  /metrics   │  │  spend     │
+             └────────────┘  └────────────┘
 ```
 
-Gateway owns health, metrics, routing. Backend is llama.cpp with Vulkan. Nothing leaves the box.
+Gateway owns health, metrics, routing, and spend. Backend is llama.cpp with Vulkan. Nothing leaves the box.
 
 ## Tuning
 
@@ -148,8 +195,10 @@ nix run .#default
 | Inference | llama.cpp, Vulkan build b11050 |
 | GPU | AMD RX 9070 XT, 16 GB, Vulkan |
 | API gateway | Node.js, OpenAI-compatible, zero dependencies |
+| Routing | cost-aware, tier plus per-request ceiling, cheapest healthy model |
+| Unit economics | measured $/1M token per model, per-request spend accounting |
 | Agent protocol | Model Context Protocol, stdio + HTTP/SSE |
-| Monitoring | Prometheus metrics, health checks |
+| Monitoring | Prometheus metrics, health checks, spend endpoint |
 | Deployment | Nix flake, one app per model |
 | Host OS | NixOS, declarative hosts and firewall |
 

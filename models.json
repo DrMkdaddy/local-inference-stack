@@ -1,0 +1,48 @@
+{
+  "generated_from": "bench/cost.json",
+  "inputs": {
+    "electricity_usd_per_kwh": 0.15,
+    "gpu_cost_usd": 600,
+    "amortize_years": 3,
+    "hours_per_year": 2000,
+    "measured_at": "2026-10-22T03:29:43.864Z"
+  },
+  "models": {
+    "qwen3-4b": {
+      "port": 8085,
+      "tier": "fast",
+      "params": "4B",
+      "quantization": "Q4_K_M",
+      "context": 4096,
+      "tok_per_sec": 146,
+      "loaded_watts": 253.4,
+      "usd_per_1m_tokens": 72.318,
+      "usd_per_1m_tokens_amortized": 0.19,
+      "usd_per_1m_prompt_tokens": 72.318
+    },
+    "deepseek-r1-7b": {
+      "port": 8082,
+      "tier": "balanced",
+      "params": "7B",
+      "quantization": "Q4_K_M",
+      "context": 4096,
+      "tok_per_sec": 104.6,
+      "loaded_watts": 291.3,
+      "usd_per_1m_tokens": 116.081,
+      "usd_per_1m_tokens_amortized": 0.266,
+      "usd_per_1m_prompt_tokens": 116.081
+    },
+    "qwen3.8-9b": {
+      "port": 8081,
+      "tier": "quality",
+      "params": "9B",
+      "quantization": "Q6_K",
+      "context": 4096,
+      "tok_per_sec": 67.9,
+      "loaded_watts": 299.7,
+      "usd_per_1m_tokens": 183.855,
+      "usd_per_1m_tokens_amortized": 0.409,
+      "usd_per_1m_prompt_tokens": 183.855
+    }
+  }
+}
