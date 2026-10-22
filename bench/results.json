@@ -1,0 +1,139 @@
+{
+  "model": "DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf",
+  "results": [
+    {
+      "ctx": 4096,
+      "ngl": 99,
+      "kv": "q8_0",
+      "fa": "on",
+      "label": "gen 4096 ctx",
+      "gen_tps": 101.3,
+      "gen_ms": 2527,
+      "gen_tokens": 256,
+      "label_text": "101.3 tok/s, 2527 ms",
+      "vram_bytes": 9812529152,
+      "vram_loaded_bytes": 9806434304
+    },
+    {
+      "ctx": 2048,
+      "ngl": 99,
+      "kv": "q8_0",
+      "fa": "on",
+      "label": "prefill ctx 2048",
+      "prefill_tps": 2384,
+      "prefill_prompt_tokens": 981,
+      "label_text": "981 prompt tok in 411 ms",
+      "vram_bytes": 9794482176,
+      "vram_loaded_bytes": 9741946880
+    },
+    {
+      "ctx": 4096,
+      "ngl": 99,
+      "kv": "q8_0",
+      "fa": "on",
+      "label": "prefill ctx 4096",
+      "prefill_tps": 2420.8,
+      "prefill_prompt_tokens": 981,
+      "label_text": "981 prompt tok in 405 ms",
+      "vram_bytes": 9858965504,
+      "vram_loaded_bytes": 9806434304
+    },
+    {
+      "ctx": 8192,
+      "ngl": 99,
+      "kv": "q8_0",
+      "fa": "on",
+      "label": "prefill ctx 8192",
+      "prefill_tps": 2395,
+      "prefill_prompt_tokens": 981,
+      "label_text": "981 prompt tok in 410 ms",
+      "vram_bytes": 9987940352,
+      "vram_loaded_bytes": 9935405056
+    },
+    {
+      "ctx": 4096,
+      "ngl": 99,
+      "kv": "q8_0",
+      "fa": "on",
+      "np": 1,
+      "label": "concurrent np=1",
+      "concurrent_tps": 102.9,
+      "concurrent_wall_ms": 4977,
+      "label_text": "102.9 tok/s aggregate, 4977 ms wall",
+      "vram_bytes": 9812529152,
+      "vram_loaded_bytes": 9806434304
+    },
+    {
+      "ctx": 4096,
+      "ngl": 99,
+      "kv": "q8_0",
+      "fa": "on",
+      "np": 2,
+      "label": "concurrent np=2",
+      "concurrent_tps": 183.5,
+      "concurrent_wall_ms": 2790,
+      "label_text": "183.5 tok/s aggregate, 2790 ms wall",
+      "vram_bytes": 9814470656,
+      "vram_loaded_bytes": 9804337152
+    },
+    {
+      "ctx": 4096,
+      "ngl": 99,
+      "kv": "q8_0",
+      "fa": "on",
+      "np": 4,
+      "label": "concurrent np=4",
+      "concurrent_tps": 285.7,
+      "concurrent_wall_ms": 1792,
+      "label_text": "285.7 tok/s aggregate, 1792 ms wall",
+      "vram_bytes": 9819357184,
+      "vram_loaded_bytes": 9803292672
+    },
+    {
+      "ctx": 8192,
+      "ngl": 99,
+      "kv": "f16",
+      "fa": "on",
+      "label": "kv f16 @8192",
+      "kv_gen_tps": 96.2,
+      "label_text": "96.2 tok/s",
+      "vram_bytes": 10161029120,
+      "vram_loaded_bytes": 10155425792
+    },
+    {
+      "ctx": 8192,
+      "ngl": 99,
+      "kv": "q8_0",
+      "fa": "on",
+      "label": "kv q8_0 @8192",
+      "kv_gen_tps": 90.6,
+      "label_text": "90.6 tok/s",
+      "vram_bytes": 9940910080,
+      "vram_loaded_bytes": 9935405056
+    },
+    {
+      "ctx": 8192,
+      "ngl": 99,
+      "kv": "q4_0",
+      "fa": "on",
+      "label": "kv q4_0 @8192",
+      "kv_gen_tps": 92.8,
+      "label_text": "92.8 tok/s",
+      "vram_bytes": 9823469568,
+      "vram_loaded_bytes": 9817964544
+    },
+    {
+      "ctx": 4096,
+      "ngl": 99,
+      "kv": "q8_0",
+      "fa": "on",
+      "cacheReuse": 256,
+      "label": "prefix reuse",
+      "reuse_first_ms": 405,
+      "reuse_second_ms": 161,
+      "label_text": "405 ms then 161 ms",
+      "vram_bytes": 9858965504,
+      "vram_loaded_bytes": 9806434304
+    }
+  ]
+}
