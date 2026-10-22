@@ -1,6 +1,6 @@
-// Optimization sweep. Measures the things that actually move: generation
-// throughput, prefill throughput as context grows, concurrent serving with
-// parallel slots, KV cache cost at long context, and prefix cache reuse.
+// Optimization sweep. Measures generation throughput, prefill as context
+// grows, concurrent serving across parallel slots, KV cache cost at long
+// context, and prefix cache reuse.
 //
 //   node bench/sweep.mjs
 //
@@ -114,7 +114,7 @@ results.push(await measure({ ctx: 4096, ngl: 99, kv: 'q8_0', fa: 'on' }, 'gen 40
   return { gen_tps: Number(tps.toFixed(1)), gen_ms: Math.round(ms), gen_tokens: runs[0].gen, label_text: `${tps.toFixed(1)} tok/s, ${Math.round(ms)} ms` };
 }));
 
-// 2. Prefill: a long prompt, so context length actually costs something.
+// 2. Prefill: a long prompt, so the context window is the variable.
 for (const ctx of [2048, 4096, 8192]) {
   results.push(await measure({ ctx, ngl: 99, kv: 'q8_0', fa: 'on' }, `prefill ctx ${ctx}`, async () => {
     const r = await chat(LONG, 16);
